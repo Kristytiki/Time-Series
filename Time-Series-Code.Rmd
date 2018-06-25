@@ -1,0 +1,97 @@
+---
+title: "221_project"
+author: "Zheqi Wu"
+date: "3/1/2018"
+output: pdf_document
+---
+
+```{r}
+## data selection
+dat_raw = read.csv("LA_p.csv")
+dat0 = dat_raw[which(dat_raw$Arrival_Departure=="Departure" &  (dat_raw$Domestic_International=="Domestic") & dat_raw$FlightType=="Scheduled Carriers"),]
+## separate the training and testing set
+dat_new = subset(dat0,select = c("ReportPeriod","Passenger_Count"))[1:124,]
+dat_test = subset(dat0,select = c("ReportPeriod","Passenger_Count"))[125:144,]
+
+dat = ts(dat_new$Passenger_Count, start=c(2006,1),frequency=12)
+
+```
+
+```{r}
+## visualization of data
+plot(dat,ylab="Scheduled Carriers",main="Number of passengers from 2006 to 2017",type="l")
+```
+
+```{r}
+## Decomposing Seasonal Data
+datComp <- decompose(dat)
+plot(datComp)
+## Seasonally Adjusting
+## If you have a seasonal time series, you can seasonally adjust the series by estimating the seasonal component, and subtracting it from the original time series. 
+datSeasonAdj <- dat - datComp$seasonal
+plot.ts(datSeasonAdj)
+```
+
+```{r}
+## the goal is to coerce the data to stationarity, so differencing the data producing stationary.
+## fit polynomial regression
+x=time(datSeasonAdj)
+x2=time(datSeasonAdj)^2
+summary(fit1 <- lm(datSeasonAdj~time(dat), na.action=NULL))
+plot(datSeasonAdj, ylab="Scheduled Carriers",type = "l") 
+abline(fit1,col="red",lty=1,lwd=2) # add the fitted line
+
+summary(fit2 <- lm(datSeasonAdj~x+I(x^2), na.action=NULL))  ## 
+plot(datSeasonAdj, ylab="Scheduled Carriers",type = "l") 
+par(new=TRUE)
+plot(fit2$fitted.values,col="red",lty=1,lwd=2) # add the fitted line
+
+par(mfrow=c(3,1)) 
+plot(resid(fit1), main="detrended linear",type="l")
+plot(resid(fit2), main="detrended d=2",type="l")
+plot(diff(datSeasonAdj),  main="first difference",type="l")
+plot(diff(datSeasonAdj),  main="first difference",type="l")
+par(mfrow=c(1,1)) 
+# plot ACFs and PACFs
+s_1 = acf2(datSeasonAdj,main = "orginal")
+s_2 = acf2(resid(fit1),main = "detrended linear")
+s_3 = acf2(resid(fit2),main = "detrended d=2")
+s_4 = acf2(diff(datSeasonAdj),main = "first difference")
+```
+
+
+```{r}
+## fit in original data
+summary(fit2 <- lm(dat~time(dat), na.action=NULL))
+plot(dat, ylab="Scheduled Carriers",type = "l") 
+abline(fit2,col="red",lty=1,lwd=2) # add the fitted line
+
+par(mfrow=c(2,1)) 
+plot(resid(fit2), main="detrended",type="l")
+plot(diff(dat),  main="first difference",type="l")
+
+s_1 = acf2(dat,main = "orginal")
+s_2 = acf2(resid(fit2),main = "detrended")
+s_3 = acf2(diff(dat),main = "first difference")
+
+```
+
+
+```{r}
+## fit in ARIMA model(d=2) to find lowest AIC and BIC
+dat_log = log(dat)
+plot(log(dat))
+## original data to fit model
+AIC_record=matrix(ncol  = 30,nrow = 30)
+BIC_record=matrix(ncol  = 30,nrow = 30)
+## log(dat) to fit model
+for (i in 1:10){
+  for(j in 1:10)
+  {model_AR = sarima(dat, order=c(i, 1, j),seasonal=list(order=c(1,1,1)), no.constant=TRUE) # ARIMA(0,1,1) 
+  AIC_record[i,j]=model_AR$AIC;
+  BIC_record[i,j]=model_AR$BIC}
+}
+
+
+#sarima(diff(dat), 1, 1, 1, no.constant=TRUE) # ARIMA(1,1,1)
+```
