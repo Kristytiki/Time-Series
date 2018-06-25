@@ -1,0 +1,2 @@
+# Time-Series
+In this project, we explore the traffic collision time-series data with trend and seasonality giving a real-world interpretation. Then we choose the seasonal ARIMA(2,0,1)(1,1,1)[7] model to do forecasting, which has a better fit of data and smaller MSE compare to ARIMA(2,1,1). In the spectral analysis, we find out that the weekly cycle of traffic collision are predominant in the series while it has the minor half-yearly cycle.
